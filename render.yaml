@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: walkie-talkie
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+    healthCheckPath: /health
+    autoDeploy: true
