@@ -5,7 +5,13 @@ const cors = require('cors');
 const { WebSocketServer } = require('ws');
 const { randomUUID } = require('crypto');
 
-const PORT = process.env.PORT || 3000;
+const HOST = (process.env.HOST || '0.0.0.0').trim();
+const PORT = (() => {
+  const fromEnv = process.env.PORT;
+  if (!fromEnv) return 3000;
+  const parsed = Number(fromEnv);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 3000;
+})();
 const CLIENT_ROOT = path.join(__dirname, '..', 'client');
 
 const app = express();
@@ -124,6 +130,6 @@ server.on('upgrade', (request, socket, head) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Signaling server running on http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`Signaling server running on http://${HOST}:${PORT}`);
 });
