@@ -146,7 +146,7 @@ function getPeerConnection(peerId) {
   };
 
   pc.ontrack = (event) => {
-    const [stream] = event.streams;
+    const stream = event.streams?.[0] ?? new MediaStream([event.track]);
     attachRemoteAudio(peerId, stream);
   };
 
@@ -234,7 +234,15 @@ function clearDisconnectionTimer(peerId) {
 }
 
 function attachRemoteAudio(peerId, stream) {
-  if (remoteAudios.has(peerId)) return;
+  const targetStream = stream ?? new MediaStream();
+  const existing = remoteAudios.get(peerId);
+
+  if (existing) {
+    existing.audio.srcObject = targetStream;
+    playAudioSafely(peerId, existing.audio);
+    return;
+  }
+
   const container = document.createElement('div');
   container.className = 'audio-card';
   container.id = `audio-${peerId}`;
@@ -247,12 +255,45 @@ function attachRemoteAudio(peerId, stream) {
   audio.controls = true;
   audio.autoplay = true;
   audio.playsInline = true;
-  audio.srcObject = stream;
+  audio.srcObject = targetStream;
+
+  const playButton = document.createElement('button');
+  playButton.textContent = '再生';
+  playButton.style.display = 'none';
+  playButton.style.marginTop = '6px';
+  playButton.addEventListener('click', () => {
+    playButton.disabled = true;
+    playAudioSafely(peerId, audio, () => {
+      playButton.style.display = 'none';
+      playButton.disabled = false;
+    });
+  });
 
   container.appendChild(label);
   container.appendChild(audio);
+  container.appendChild(playButton);
   audioGrid.appendChild(container);
-  remoteAudios.set(peerId, container);
+  remoteAudios.set(peerId, { container, audio, playButton });
+  playAudioSafely(peerId, audio);
+}
+
+function playAudioSafely(peerId, audio, onSuccess = () => {}) {
+  const playPromise = audio.play();
+  if (playPromise && typeof playPromise.then === 'function') {
+    playPromise
+      .then(onSuccess)
+      .catch((error) => {
+        console.warn('音声の自動再生がブロックされました。手動で再生してください。', error);
+        showManualPlayButton(peerId);
+      });
+  }
+}
+
+function showManualPlayButton(peerId) {
+  const entry = remoteAudios.get(peerId);
+  if (!entry) return;
+  entry.playButton.style.display = 'inline-block';
+  entry.playButton.disabled = false;
 }
 
 function closePeerConnection(peerId) {
@@ -266,7 +307,8 @@ function closePeerConnection(peerId) {
 
   const audioEl = remoteAudios.get(peerId);
   if (audioEl) {
-    audioEl.remove();
+    audioEl.audio.srcObject = null;
+    audioEl.container.remove();
     remoteAudios.delete(peerId);
   }
 }
