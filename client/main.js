@@ -11,6 +11,7 @@ let currentRoom = null;
 let localStream = null;
 const peerConnections = new Map();
 const remoteAudios = new Map();
+const disconnectionTimers = new Map();
 
 const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const signalingUrl = `${protocol}://${window.location.host}/ws`;
@@ -85,8 +86,8 @@ function handleSignalMessage(event) {
       message.peers.forEach((peerId) => createOfferForPeer(peerId));
       break;
     case 'peer-joined':
+      // 新規参加者側が offer を送信するため、既存参加者は追加のみ行う
       addPeer(message.from);
-      createOfferForPeer(message.from);
       break;
     case 'offer':
       handleOffer(message.from, message.sdp);
@@ -119,6 +120,7 @@ function addPeer(peerId) {
 }
 
 function removePeer(peerId) {
+  clearDisconnectionTimer(peerId);
   const li = peerList.querySelector(`[data-peer="${peerId}"]`);
   if (li) li.remove();
   closePeerConnection(peerId);
@@ -148,11 +150,7 @@ function getPeerConnection(peerId) {
     attachRemoteAudio(peerId, stream);
   };
 
-  pc.onconnectionstatechange = () => {
-    if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
-      removePeer(peerId);
-    }
-  };
+  pc.onconnectionstatechange = () => handleConnectionStateChange(peerId, pc.connectionState);
 
   localStream?.getTracks().forEach((track) => pc.addTrack(track, localStream));
 
@@ -202,6 +200,36 @@ async function handleCandidate(from, candidate) {
     } catch (error) {
       console.error('Failed to add ICE candidate', error);
     }
+  }
+}
+
+function handleConnectionStateChange(peerId, state) {
+  if (state === 'connected' || state === 'connecting') {
+    clearDisconnectionTimer(peerId);
+    return;
+  }
+
+  if (state === 'disconnected') {
+    clearDisconnectionTimer(peerId);
+    const timer = setTimeout(() => {
+      disconnectionTimers.delete(peerId);
+      removePeer(peerId);
+    }, 3000);
+    disconnectionTimers.set(peerId, timer);
+    return;
+  }
+
+  if (state === 'failed' || state === 'closed') {
+    clearDisconnectionTimer(peerId);
+    removePeer(peerId);
+  }
+}
+
+function clearDisconnectionTimer(peerId) {
+  const timer = disconnectionTimers.get(peerId);
+  if (timer) {
+    clearTimeout(timer);
+    disconnectionTimers.delete(peerId);
   }
 }
 
