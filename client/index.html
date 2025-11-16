@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Walkie Talkie</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #f5f7fb;
+        color: #1f2933;
+      }
+
+      header {
+        margin-bottom: 16px;
+      }
+
+      .card {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        padding: 20px;
+        max-width: 720px;
+        margin: 0 auto 16px;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      input,
+      button {
+        font-size: 16px;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #cbd2d9;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+
+      button {
+        cursor: pointer;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        color: #ffffff;
+        background-color: #2563eb;
+      }
+
+      button:disabled {
+        background-color: #9bb1f9;
+        cursor: not-allowed;
+      }
+
+      .status {
+        margin-top: 8px;
+        font-size: 14px;
+        color: #52606d;
+      }
+
+      .peers {
+        margin-top: 12px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .peers li {
+        padding: 6px 8px;
+        border: 1px solid #e4e7eb;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        background: #f8fafc;
+      }
+
+      .audio-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .audio-card {
+        padding: 12px;
+        border-radius: 10px;
+        background: #eef2ff;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Walkie Talkie (音声通話サンプル)</h1>
+      <p>同じルーム名を入力して参加するだけで P2P 音声通話を確立します。</p>
+    </header>
+
+    <section class="card">
+      <label for="room">ルーム名</label>
+      <input id="room" type="text" placeholder="例: demo-room" />
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <button id="joinBtn">ルームに参加</button>
+        <button id="leaveBtn" disabled>切断</button>
+      </div>
+      <div class="status" id="status">未接続</div>
+    </section>
+
+    <section class="card">
+      <h2>参加中のピア</h2>
+      <ul id="peerList" class="peers"></ul>
+    </section>
+
+    <section class="card">
+      <h2>受信中の音声</h2>
+      <div id="audioGrid" class="audio-grid"></div>
+    </section>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
